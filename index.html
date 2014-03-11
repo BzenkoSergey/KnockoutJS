@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>KnockoutJS - One Task, many JS MVC</title>
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="styles.css">
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/3.0.0/knockout-min.js"></script>
+        <script src="app.js"></script>
+    </head>
+
+    <body>
+        <div class="layout-center main">
+            <!-- Add form -->
+            <form class="form" data-bind="submit: submit">
+                <div class="form-section">
+                    <label for="post-title">Post Title:</label>
+                    <input id="post-title" type="text" data-bind="value: title" placeholder="Enter Post Title">
+                </div>
+                <div class="form-section">
+                    <label for="post-message">Post Message:</label>
+                    <textarea id="post-message" name="message" data-bind="value: message" placeholder="Enter Post Message"></textarea>
+                </div>
+                <div class="form-section">
+                    <button class="btn">
+                        Save
+                        <span class="fa fa-chevron-right more-link-arrow"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="search hide" data-bind="css: { hide : isHide }">
+                <span class="search-show" data-bind="click: changeVisible">Click to show Search Panel</span>
+                <input type="text" name="query" data-bind="value: query, valueUpdate: 'afterkeydown', hasFocus: !isHide()" placeholder="Enter for Search">
+            </div>
+
+            <!-- Posts -->
+            <div class="post-wrap" data-bind="foreach: visiblePosts()">
+                <article class="post">
+                    <div class="post-toolbar">
+                        <span class="post-toolbar-link" data-bind="click: $root.editPost">Edit</span>
+                        <span class="post-toolbar-link" data-bind="click: $root.deletePost">Delete</span>
+                    </div>
+    				<h2 class="post-title">
+    					<a class="post-title-link" data-bind="text: title"></a>
+    				</h2>
+        			<div class="post-content" data-bind="text: message"></div>
+        		</article>
+            </div>
+
+            <!-- No Data -->
+            <div class="post-noresult hide" data-bind="css: { hide : visiblePosts().length }">
+                No Data
+            </div>
+        </div>
+    </body>
+</html>
