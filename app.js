@@ -16,7 +16,7 @@ myApp.newPage = function() {
     for(var key in posts) {
         var post = posts[key];
         if(!post) continue;
-        this.postCollection.addPost(new this.Post(post[0], post[1], post[2]));
+        this.postCollection.addPost(new this.Post(post[0], post[1], post[2], _super));
     }
 
     this.postEditor = new this.PostEditor(_super);
@@ -30,6 +30,136 @@ myApp.newPage = function() {
     };
 
     init();
+};
+
+myApp.newPage.prototype.Post = function(id, title, message, _super) {
+    if(!_super) return false;
+    if(typeof id === undefined) return false;
+    if(!title && !message) return false;
+
+    var self = this;
+
+    this.id = id;
+    this.title = ko.observable(title);
+    this.message = ko.observable(message);
+    this.summaryData = ko.observable(null);
+
+    this.visible = ko.observable(true);
+    this.removeFromStorage = ko.observable(false);
+
+    this.isEditNow = function() {
+        var editPost = _super.postEditor.editedPost();
+        if(!editPost) return false;
+        if(editPost.id === self.id) return true;
+        return false;
+    };
+
+    this.editPost = function() {
+        _super.postEditor.editedPost(self);
+    };
+
+    var removeFromStorage = function() {
+            if(!window.localStorage) return false;
+
+            var posts = getStorageData();
+            if(!posts) return false;
+            //delete posts[id];
+            posts.splice(id, 1);
+
+            window.localStorage["posts"] = JSON.stringify(posts);
+        },
+
+        saveToStorage = function() {
+            if(!window.localStorage) return false;
+
+            var posts = getStorageData();
+            if(!posts) return false;
+
+            var summaryData = self.summaryData();
+            if(!summaryData) return false;
+            posts[id] = self.summaryData();
+            window.localStorage["posts"] = JSON.stringify(posts);
+        },
+
+        getStorageData = function() {
+            if(!window.localStorage) return false;
+
+            var storageData = window.localStorage["posts"];
+            if(!storageData) {
+                storageData = (window.localStorage["posts"] = JSON.stringify([]));
+            }
+            var posts = $.parseJSON(storageData);
+            return (posts)? posts: null;
+        },
+
+        setSummaryData = function() {
+            self.summaryData([self.id, self.title(), self.message()]);
+        };
+
+        init = function() {
+            self.title.subscribe(setSummaryData);
+            self.message.subscribe(setSummaryData);
+
+            self.summaryData.subscribe(saveToStorage);
+            setSummaryData();
+
+            self.removeFromStorage.subscribe(function(isRemove) {
+                if(!isRemove) return false;
+                removeFromStorage();
+            });
+        };
+
+    init();
+};
+
+myApp.newPage.prototype.PostCollection = function(_super) {
+    if(!_super) return false;
+    var self = this;
+
+    this.posts = new ko.observableArray([]);
+    this.postsCount = ko.observable(0);
+    this.postsVisbleCount = ko.observable(0);
+
+    this.deletePost = function(post) {
+        if(!post) return false;
+
+        if(post.isEditNow()) {
+            _super.postEditor.resetFields();
+        }
+        post.removeFromStorage(true);
+        self.posts.remove(post);
+
+        self.postsCount(self.postsCount() - 1);
+    };
+
+    this.addPost = function(post) {
+        if(!post) return false;
+        self.posts.push(post);
+        self.postsCount(self.postsCount() + 1);
+        reSort();
+    };
+
+    this.visiblePosts = function() {
+        var orgPosts = self.posts();
+
+        var posts = [];
+        for(var key in orgPosts) {
+            var post = orgPosts[key];
+            if(post.visible()) {
+                posts.push(post);
+            }
+        }
+        self.postsVisbleCount(posts.length);
+        return posts;
+    };
+
+    var reSort = function(posts) {
+        self.posts.sort(function(left, right) {
+            return (left.id > right.id)? -1 : 1;
+        });
+    };
+
+    reSort();
 };
 
 myApp.newPage.prototype.SearchPanel = function(_super) {
@@ -71,142 +201,59 @@ myApp.newPage.prototype.PostEditor = function(_super) {
 
     var self = this;
 
-    this.currentPost = ko.observable(null);
+    this.editedPost = ko.observable(null);
     this.title = ko.observable();
     this.message = ko.observable();
 
     this.submit = function() {
+        normalizeValues();
         if(!validation()) return false;
-        if(self.currentPost()) {
-            editPost();
-            return false;
-        }
-        addPost();
-        return false;
+
+        self.editedPost()? editPost() : addPost();
     };
 
-    this.resetValues = function() {
+    this.resetFields = function() {
         self.title("");
         self.message("");
+        self.editedPost(null);
     };
 
     var presentNewData = function() {
-            var post = self.currentPost();
+            var post = self.editedPost();
             if(!post) return false;
     
             self.title(post.title());
             self.message(post.message());
         },
 
+        normalizeValues = function() {
+            self.title($.trim(self.title()));
+            self.message($.trim(self.message()));
+        },
+
         validation = function() {
-            var title = $.trim(self.title());
-            var message = $.trim(self.message());
-            if(!title || !message) return false;
-            self.title(title);
-            self.message(message);
+            if(!self.title() || !self.message()) return false;
             return true;
         },
 
         editPost = function() {
-            var post = self.currentPost();
+            var post = self.editedPost();
             if(!post) return false;
             post.title(self.title());
             post.message(self.message());
-            self.currentPost(false);
-            self.resetValues();
+            self.editedPost(false);
+            self.resetFields();
         },
 
         addPost = function() {
-            var newPostId = _super.postCollection.posts().length;
-            var post = new _super.Post(newPostId, self.title(), self.message());
+            var id = _super.postCollection.posts().length;
+            console.log(id);
+            var post = new _super.Post(id, self.title(), self.message(), _super);
             _super.postCollection.addPost(post);
-            self.resetValues();
+            self.resetFields();
         };
 
-    this.currentPost.subscribe(presentNewData);
-};
-
-myApp.newPage.prototype.Post = function(id, title, message) {
-    if(!id && typeof id === undefined) return false;
-    if(!title && !message) return false;
-
-    var self = this;
-
-    this.id = id;
-    this.title = ko.observable(title);
-    this.message = ko.observable(message);
-    this.visible = ko.observable(true);
-    this.summaryData = ko.observable(null);
-
-    this.summaryData.subscribe(function() {
-        if(window.localStorage) {
-            var postJSON = window.localStorage["posts"];
-            var posts = (postJSON)? $.parseJSON(postJSON) : posts;
-            if(!posts) return false;
-            if(self.summaryData()) {
-                posts[id] = self.summaryData();
-            } else {
-                delete posts[id];
-            }
-            posts = JSON.stringify(posts);
-            window.localStorage["posts"] = posts;
-        }
-    });
-
-    var setSummaryData = function() {
-        self.summaryData([self.id, self.title(), self.message()]);
-    };
-    this.title.subscribe(setSummaryData);
-    this.message.subscribe(setSummaryData);
-    setSummaryData();
-};
-
-myApp.newPage.prototype.PostCollection = function(_super) {
-    if(!_super) return false;
-
-    var self = this;
-    this.posts = new ko.observableArray([]);
-
-    this.deletePost = function(post) {
-        if(!post) return false;
-        var currentEditedPost = _super.postEditor.currentPost();
-        if(currentEditedPost && post.id === currentEditedPost.id) {
-            _super.postEditor.resetValues();
-        }
-        post.summaryData(null);
-        self.posts.remove(post);
-    };
-
-    this.addPost = function(post) {
-        if(!post) return false;
-        self.posts.push(post);
-        reSort();
-    };
-
-    this.editPost = function(post) {
-        if(!post) return false;
-        _super.postEditor.currentPost(post);
-    };
-
-    this.visiblePosts = function() {
-        var orgPosts = self.posts();
-
-        var posts = [];
-        for(var key in orgPosts) {
-            var post = orgPosts[key];
-            if(post.visible()) {
-                posts.push(post);
-            }
-        }
-        return posts;
-    };
-
-    var reSort = function() {
-        self.posts.sort(function(left, right) {
-            return (left.id > right.id)? -1 : 1;
-        });
-    };
-    reSort();
+    this.editedPost.subscribe(presentNewData);
 };
 
 $(function() {
