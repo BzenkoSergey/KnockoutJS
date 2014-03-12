@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <title>KnockoutJS - One Task, many JS MVC</title>
         <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
-        <link rel="stylesheet" type="text/css" href="styles.css">
+        <link rel="stylesheet" type="text/css" href="../styles.css">
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/3.0.0/knockout-min.js"></script>
         <script src="app.js"></script>
@@ -24,14 +24,16 @@
                 </div>
                 <div class="form-section">
                     <button class="btn">
-                        Save
+                        <span data-bind="text: !editedPost() ? 'Add' : 'Edit'"></span>
                         <span class="fa fa-chevron-right more-link-arrow"></span>
                     </button>
                 </div>
             </form>
 
             <div class="search hide" data-bind="css: { hide : isHide }">
-                <span class="search-show" data-bind="click: changeVisible">Click to show Search Panel</span>
+                <span class="search-show" data-bind="click: changeVisible">
+                    Click to <span data-bind="text: isHide() ? 'show' : 'hide'"></span> Search Panel
+                </span>
                 <input type="text" name="query" data-bind="value: query, valueUpdate: 'afterkeydown', hasFocus: !isHide()" placeholder="Enter for Search">
             </div>
 
@@ -39,14 +41,14 @@
             <div class="post-wrap" data-bind="foreach: visiblePosts()">
                 <article class="post">
                     <div class="post-toolbar">
-                        <span class="post-toolbar-link" data-bind="click: $root.editPost">Edit</span>
+                        <span class="post-toolbar-link" data-bind="click: editPost">Edit</span>
                         <span class="post-toolbar-link" data-bind="click: $root.deletePost">Delete</span>
                     </div>
-    				<h2 class="post-title">
-    					<a class="post-title-link" data-bind="text: title"></a>
-    				</h2>
-        			<div class="post-content" data-bind="text: message"></div>
-        		</article>
+                    <h2 class="post-title">
+                        <a class="post-title-link" data-bind="text: title"></a>
+                    </h2>
+                    <div class="post-content" data-bind="text: message"></div>
+                </article>
             </div>
 
             <!-- No Data -->
